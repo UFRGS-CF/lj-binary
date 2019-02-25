@@ -266,7 +266,7 @@ int main(int argc, char *argv[]) {
 			rho = atof(argv[++i]);
 		else if (!strcmp(argv[i], "-dt"))
 			dt = atof(argv[++i]);
-		else if (!strcmp(argv[i], "-dt"))
+		else if (!strcmp(argv[i], "-rc"))
 			rc = atof(argv[++i]);
 		else if (!strcmp(argv[i], "-sf"))
 			sample_frequency = atoi(argv[++i]);
