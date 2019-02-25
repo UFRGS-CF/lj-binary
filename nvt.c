@@ -37,6 +37,20 @@ double gauss(double sigma, double l0) {
 	return l;
 }
 
+/*
+ * Write simultion coordinates and velocities to output stream fp
+ */
+void snapshot(FILE *fp, unsigned long int N, struct cartesian r[N], struct
+		cartesian v[N]) {
+
+	fprintf(fp, "rx\try\trz\tvx\tvy\tvz\n");
+	for (unsigned long int i = 0; i < N; ++i) {
+		fprintf(fp, "%.8lf\t%.8lf\t%.8lf\t%.8lf\t%.8lf\t%.8lf\n",
+				r[i].x, r[i].y, r[i].z, v[i].x, v[i].y,
+				v[i].z);
+	}
+}
+
 void init(unsigned long int N, double temp, double box, struct cartesian r[N],
 		struct cartesian v[N]) {
 
@@ -205,12 +219,14 @@ void help() {
 	printf("\t -ns \tNumber of integration steps\n");
 	printf("\t -dt \tTime step\n");
 	printf("\t -rc \tCutoff radius\n");
+	printf("\t -fs \tSnapshot sample frequency\n");
 	printf("\t -h  \tPrint this message\n");
 }
 
 int main(int argc, char *argv[]) {
 
 	/** Values that can be defined in command line arguments **/
+	unsigned long int sample_frequency = 100; // snapshot writing frequency
 	unsigned long int N = 1000;    // max number of particles
 	unsigned long int n_steps = 1; // integration steps
 	double T = 1;                  // system temperature
@@ -232,6 +248,8 @@ int main(int argc, char *argv[]) {
 	double box_volume, box_length;
 
 	unsigned long int step_count = 0;
+	FILE *out;
+	char filename[50];
 
 	/* Parse command line arguments */
 	// Start at 1 because 0 is program name
@@ -250,6 +268,8 @@ int main(int argc, char *argv[]) {
 			dt = atof(argv[++i]);
 		else if (!strcmp(argv[i], "-dt"))
 			rc = atof(argv[++i]);
+		else if (!strcmp(argv[i], "-sf"))
+			sample_frequency = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "-h")) {
 			help();
 			exit(0);
@@ -283,6 +303,14 @@ int main(int argc, char *argv[]) {
 				pressure);
 
 		step_count++;
+
+		// Save simulation snapshot every sample_frequency steps
+		if(!(step_count % sample_frequency)) {
+			sprintf(filename, "snapshot_%lu.dat", step_count);
+			out = fopen(filename, "w");
+			snapshot(out, N, r, v);
+			fclose(out);
+		}
 	} while (step_count <= n_steps);
 
 	return 0;
