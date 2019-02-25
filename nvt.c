@@ -6,36 +6,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
+
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
 
 struct cartesian {
 	double x, y, z;
 };
-
-/**
- * Return random number in [0, 1]
- */
-double ranf() { return (double)rand() / RAND_MAX; }
-
-/**
- * Return value from gaussian distribution with l0 mean and stdev sigma
- */
-double gauss(double sigma, double l0) {
-
-	double l;
-	double v1, v2;
-	double r = 2;
-
-	do {
-		v1 = 2.0 * ranf() - 1;
-		v2 = 2.0 * ranf() - 1;
-		r = pow(v1, 2) + pow(v2, 2);
-	} while (r >= 1);
-
-	l = l0 + sigma * v1 * sqrt(-2.0 * log(r) / r);
-
-	return l;
-}
 
 /*
  * Write simultion coordinates and velocities to output stream fp
@@ -51,8 +28,8 @@ void snapshot(FILE *fp, unsigned long int N, struct cartesian r[N], struct
 	}
 }
 
-void init(unsigned long int N, double temp, double box, struct cartesian r[N],
-		struct cartesian v[N]) {
+void init(unsigned long int N, const gsl_rng *rng, double temp, double box,
+		struct cartesian r[N], struct cartesian v[N]) {
 
 	struct cartesian sumv, vcm;
 	double sumv2 = 0;
@@ -84,9 +61,9 @@ void init(unsigned long int N, double temp, double box, struct cartesian r[N],
 
 	// generate random velocities in range [-1, 1]
 	for (unsigned long int i = 0; i < N; i++) {
-		v[i].x = 2 * ((double)rand() / RAND_MAX) - 1;
-		v[i].y = 2 * ((double)rand() / RAND_MAX) - 1;
-		v[i].z = 2 * ((double)rand() / RAND_MAX) - 1;
+		v[i].x = gsl_ran_flat(rng, -1, 1);
+		v[i].y = gsl_ran_flat(rng, -1, 1);
+		v[i].z = gsl_ran_flat(rng, -1, 1);
 
 		sumv.x += v[i].x;
 		sumv.y += v[i].x;
@@ -162,10 +139,10 @@ void forces(unsigned long int N, double box, struct cartesian r[N], double rcut,
 	}
 }
 
-void integrate(int key, unsigned long int N, double temp, double nu, double dt,
-		struct cartesian r[N], struct cartesian v[N],
-		struct cartesian f[N], double *pe, double *ke, double *etot,
-		double *inst_temp) {
+void integrate(int key, const gsl_rng *rng, unsigned long int N, double temp,
+		double nu, double dt, struct cartesian r[N], struct cartesian
+		v[N], struct cartesian f[N], double *pe, double *ke, double
+		*etot, double *inst_temp) {
 
 	double sumv2;
 	double m = 1; // particles mass, change this later
@@ -196,11 +173,11 @@ void integrate(int key, unsigned long int N, double temp, double nu, double dt,
 		*inst_temp = m * sumv2 / (3 * N);
 
 		for (unsigned long int i = 0; i < N; i++) {
-			randunif = ((double)rand()) / RAND_MAX;
+			randunif = gsl_ran_flat(rng, 0, 1);
 			if (randunif < (nu * dt)) {
-				v[i].x = gauss(sigma, 0);
-				v[i].y = gauss(sigma, 0);
-				v[i].z = gauss(sigma, 0);
+				v[i].x = gsl_ran_gaussian(rng, sigma);
+				v[i].y = gsl_ran_gaussian(rng, sigma);
+				v[i].z = gsl_ran_gaussian(rng, sigma);
 			}
 		}
 
@@ -224,6 +201,8 @@ void help() {
 }
 
 int main(int argc, char *argv[]) {
+
+	const gsl_rng *rng = gsl_rng_alloc(gsl_rng_mt19937);
 
 	/** Values that can be defined in command line arguments **/
 	unsigned long int sample_frequency = 100; // snapshot writing frequency
@@ -280,18 +259,17 @@ int main(int argc, char *argv[]) {
 	}
 
 	/** Initialization calls */
-	srand(time(NULL));
 	box_volume = ((double)N) / rho;
 	box_length = pow(box_volume, 1.0 / 3);
-	init(N, T, box_length, r, v);
+	init(N, rng, T, box_length, r, v);
 	forces(N, box_length, r, rc, f, &pe, &virial);
 
 	/** MD loop */
 	printf("# step\ttemp\ttemp drift\tpressure\n");
 	do {
-		integrate(1, N, T, nu, dt, r, v, f, &pe, &ke, &etot, &inst_temp);
+		integrate(1, rng, N, T, nu, dt, r, v, f, &pe, &ke, &etot, &inst_temp);
 		forces(N, box_length, r, rc, f, &pe, &virial);
-		integrate(2, N, T, nu, dt, r, v, f, &pe, &ke, &etot, &inst_temp);
+		integrate(2, rng, N, T, nu, dt, r, v, f, &pe, &ke, &etot, &inst_temp);
 
 		if (step_count == 0)
 			temp0 = inst_temp;

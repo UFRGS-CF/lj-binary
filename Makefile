@@ -1,2 +1,2 @@
 nvt: nvt.c
-	gcc -lm nvt.c -Wall -Wextra -o md.out
+	gcc -lm -lgsl -lgslcblas -O2 -Wall -Wextra nvt.c -o md.out
