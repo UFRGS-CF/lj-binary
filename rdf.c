@@ -8,26 +8,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "md.h"
 
-struct cartesian {
-	double x, y, z;
-};
-
-void snapshot_in(FILE *snapshot, unsigned long int N, struct cartesian r[N]) {
+void snapshot_in(FILE *snapshot, unsigned long int N, struct particle p[N]) {
 
 	double vx, vy, vz;
 
 	fscanf(snapshot, "%*[^\n]\n", NULL); // ignore file header
 
 	for (unsigned long int i = 0; i < N; i++) {
-		fscanf(snapshot, "%lf\t%lf\t%lf\t%lf\t%lf\t%lf", &(r[i].x),
-				&(r[i].y), &(r[i].z), &vx, &vy, &vz);
+		fscanf(snapshot, "%lu\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf",
+				&(p[i].type),
+				&(p[i].r.x), &(p[i].r.y), &(p[i].r.z),
+				&vx, &vy, &vz);
 	}
 }
 
 void update_histogram(const unsigned long int N, const double box_lenght,
-		struct cartesian r[N], unsigned long int *H,
-		const double rcut, const double bin_size) {
+		struct particle p[N], unsigned long int *H, const double rcut,
+		const double bin_size) {
 
 	struct cartesian s;
 	double r2;
@@ -39,9 +38,9 @@ void update_histogram(const unsigned long int N, const double box_lenght,
 		for (unsigned long int j = i + 1; j < N; j++) {
 
 			// distance between i and j
-			s.x = r[i].x - r[j].x;
-			s.y = r[i].y - r[j].y;
-			s.z = r[i].z - r[j].z;
+			s.x = p[i].r.x - p[j].r.x;
+			s.y = p[i].r.y - p[j].r.y;
+			s.z = p[i].r.z - p[j].r.z;
 
 			// periodic boundary condition
 			s.x = s.x - box_lenght * round(s.x / box_lenght);
@@ -78,7 +77,7 @@ int main(int argc, char *argv[]) {
 	double bin_size = 0.02;
 
 	/* Sampling variables */
-	struct cartesian *r;     // particle position
+	struct particle *p; //particles
 	unsigned long int N = 0; // number of particles
 	unsigned long int *H;    // histogram
 	unsigned long int n_bins;
@@ -137,7 +136,7 @@ int main(int argc, char *argv[]) {
 
 	H = calloc(n_bins, sizeof(unsigned long int));
 	g = calloc(n_bins, sizeof(double));
-	r = calloc(N, sizeof(struct cartesian));
+	p = calloc(N, sizeof(struct particle));
 
 	box_volume = ((double)N) / rho;
 	box_lenght = pow(box_volume, 1.0 / 3);
@@ -150,8 +149,8 @@ int main(int argc, char *argv[]) {
 			fprintf(stdout, "Error: could not read %s\n", filename);
 			return 1;
 		} else {
-			snapshot_in(snapshot, N, r);
-			update_histogram(N, box_lenght, r, H, rcut, bin_size);
+			snapshot_in(snapshot, N, p);
+			update_histogram(N, box_lenght, p, H, rcut, bin_size);
 			rdf_sample++;
 		}
 		fclose(snapshot);

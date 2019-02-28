@@ -6,30 +6,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
-
-struct cartesian {
-	double x, y, z;
-};
+#include "md.h"
 
 /*
  * Write simultion coordinates and velocities to output stream fp
  */
-void snapshot(FILE *fp, unsigned long int N, struct cartesian r[N], struct
-		cartesian v[N]) {
+void snapshot(FILE *fp, unsigned long int N, struct particle p[N]) {
 
 	fprintf(fp, "rx\try\trz\tvx\tvy\tvz\n");
 	for (unsigned long int i = 0; i < N; ++i) {
-		fprintf(fp, "%.8lf\t%.8lf\t%.8lf\t%.8lf\t%.8lf\t%.8lf\n",
-				r[i].x, r[i].y, r[i].z, v[i].x, v[i].y,
-				v[i].z);
+		fprintf(fp, "%lu\t%.8lf\t%.8lf\t%.8lf\t%.8lf\t%.8lf\t%.8lf\n",
+				p[i].type,
+				p[i].r.x, p[i].r.y, p[i].r.z, p[i].v.x,
+				p[i].v.y, p[i].v.z);
 	}
 }
 
 void init(unsigned long int N, const gsl_rng *rng, double temp, double box,
-		struct cartesian r[N], struct cartesian v[N]) {
+		struct particle p[N]) {
 
 	struct cartesian sumv, vcm;
 	double sumv2 = 0;
@@ -50,9 +46,9 @@ void init(unsigned long int N, const gsl_rng *rng, double temp, double box,
 		for (int j = 0; j < max; j++) {
 			for (int k = 0; k < max; k++) {
 				if (n < N) {
-					r[n].x = box * ((float)k) / max;
-					r[n].y = box * ((float)j) / max;
-					r[n].z = box * ((float)i) / max;
+					p[n].r.x = box * ((float)k) / max;
+					p[n].r.y = box * ((float)j) / max;
+					p[n].r.z = box * ((float)i) / max;
 					n++;
 				}
 			}
@@ -61,15 +57,15 @@ void init(unsigned long int N, const gsl_rng *rng, double temp, double box,
 
 	// generate random velocities in range [-1, 1]
 	for (unsigned long int i = 0; i < N; i++) {
-		v[i].x = gsl_ran_flat(rng, -1, 1);
-		v[i].y = gsl_ran_flat(rng, -1, 1);
-		v[i].z = gsl_ran_flat(rng, -1, 1);
+		p[i].v.x = gsl_ran_flat(rng, -1, 1);
+		p[i].v.y = gsl_ran_flat(rng, -1, 1);
+		p[i].v.z = gsl_ran_flat(rng, -1, 1);
 
-		sumv.x += v[i].x;
-		sumv.y += v[i].x;
-		sumv.z += v[i].z;
+		sumv.x += p[i].v.x;
+		sumv.y += p[i].v.x;
+		sumv.z += p[i].v.z;
 
-		sumv2 += pow(v[i].x, 2) + pow(v[i].y, 2) + pow(v[i].z, 2);
+		sumv2 += pow(p[i].v.x, 2) + pow(p[i].v.y, 2) + pow(p[i].v.z, 2);
 	}
 
 	vcm.x = sumv.x / N; // velocity center of mass
@@ -81,14 +77,14 @@ void init(unsigned long int N, const gsl_rng *rng, double temp, double box,
 	// match system KE with temp, remove net CM drift
 	fs = sqrt(3 * temp / mv2); // calculate scale factor
 	for (unsigned long int i = 0; i < N; i++) {
-		v[i].x = (v[i].x - vcm.x) * fs;
-		v[i].y = (v[i].y - vcm.y) * fs;
-		v[i].z = (v[i].z - vcm.z) * fs;
+		p[i].v.x = (p[i].v.x - vcm.x) * fs;
+		p[i].v.y = (p[i].v.y - vcm.y) * fs;
+		p[i].v.z = (p[i].v.z - vcm.z) * fs;
 	}
 }
 
-void forces(unsigned long int N, double box, struct cartesian r[N], double rcut,
-		struct cartesian f[N], double *pe, double *virial) {
+void forces(unsigned long int N, double box, struct particle p[N], double rcut,
+		double *pe, double *virial) {
 
 	double r2, r2i, r6i, rcut2, ecut, ff;
 	struct cartesian s;
@@ -100,15 +96,15 @@ void forces(unsigned long int N, double box, struct cartesian r[N], double rcut,
 	ecut = 4 * (1 / pow(rcut, 12) - 1 / pow(rcut, 6));
 
 	for (unsigned long int i = 0; i < N; i++)
-		f[i].x = f[i].y = f[i].z = 0;
+		p[i].f.x = p[i].f.y = p[i].f.z = 0;
 
 	for (unsigned long int i = 0; i < (N - 1); i++) {
 		for (unsigned long int j = i + 1; j < N; j++) {
 
 			// distance between i and j
-			s.x = r[i].x - r[j].x;
-			s.y = r[i].y - r[j].y;
-			s.z = r[i].z - r[j].z;
+			s.x = p[i].r.x - p[j].r.x;
+			s.y = p[i].r.y - p[j].r.y;
+			s.z = p[i].r.z - p[j].r.z;
 
 			// periodic boundary condition
 			s.x = s.x - box * round(s.x / box);
@@ -123,14 +119,14 @@ void forces(unsigned long int N, double box, struct cartesian r[N], double rcut,
 				r6i = pow(r2i, 3);
 				ff = 48 * r2i * r6i * (r6i - 0.5);
 
-				f[i].x += ff * s.x;
-				f[j].x -= ff * s.x;
+				p[i].f.x += ff * s.x;
+				p[j].f.x -= ff * s.x;
 
-				f[i].y += ff * s.y;
-				f[j].y -= ff * s.y;
+				p[i].f.y += ff * s.y;
+				p[j].f.y -= ff * s.y;
 
-				f[i].z += ff * s.z;
-				f[j].z -= ff * s.z;
+				p[i].f.z += ff * s.z;
+				p[j].f.z -= ff * s.z;
 
 				*pe += 4 * r6i * (r6i - 1) - ecut;
 				*virial += ff;
@@ -140,9 +136,8 @@ void forces(unsigned long int N, double box, struct cartesian r[N], double rcut,
 }
 
 void integrate(int key, const gsl_rng *rng, unsigned long int N, double temp,
-		double nu, double dt, struct cartesian r[N], struct cartesian
-		v[N], struct cartesian f[N], double *pe, double *ke, double
-		*etot, double *inst_temp) {
+		double nu, double dt, struct particle p[N], double *pe, double
+		*ke, double *etot, double *inst_temp) {
 
 	double sumv2;
 	double m = 1; // particles mass, change this later
@@ -151,23 +146,23 @@ void integrate(int key, const gsl_rng *rng, unsigned long int N, double temp,
 
 	if (key == 1) {
 		for (unsigned long int i = 0; i < N; i++) {
-			r[i].x = r[i].x + dt * v[i].x + dt * dt * f[i].x / 2;
-			r[i].y = r[i].y + dt * v[i].y + dt * dt * f[i].y / 2;
-			r[i].z = r[i].z + dt * v[i].z + dt * dt * f[i].z / 2;
+			p[i].r.x = p[i].r.x + dt * p[i].v.x + dt * dt * p[i].f.x / 2;
+			p[i].r.y = p[i].r.y + dt * p[i].v.y + dt * dt * p[i].f.y / 2;
+			p[i].r.z = p[i].r.z + dt * p[i].v.z + dt * dt * p[i].f.z / 2;
 
-			v[i].x = v[i].x + dt * f[i].x / 2;
-			v[i].y = v[i].y + dt * f[i].y / 2;
-			v[i].z = v[i].z + dt * f[i].z / 2;
+			p[i].v.x = p[i].v.x + dt * p[i].f.x / 2;
+			p[i].v.y = p[i].v.y + dt * p[i].f.y / 2;
+			p[i].v.z = p[i].v.z + dt * p[i].f.z / 2;
 		}
 	} else if (key == 2) {
 		sumv2 = 0;
 
 		for (unsigned long int i = 0; i < N; i++) {
-			v[i].x = v[i].x + dt * f[i].x / 2;
-			v[i].y = v[i].y + dt * f[i].y / 2;
-			v[i].z = v[i].z + dt * f[i].z / 2;
+			p[i].v.x = p[i].v.x + dt * p[i].f.x / 2;
+			p[i].v.y = p[i].v.y + dt * p[i].f.y / 2;
+			p[i].v.z = p[i].v.z + dt * p[i].f.z / 2;
 
-			sumv2 += pow(v[i].x, 2) + pow(v[i].y, 2) + pow(v[i].z, 2);
+			sumv2 += pow(p[i].v.x, 2) + pow(p[i].v.y, 2) + pow(p[i].v.z, 2);
 		}
 
 		*inst_temp = m * sumv2 / (3 * N);
@@ -175,9 +170,9 @@ void integrate(int key, const gsl_rng *rng, unsigned long int N, double temp,
 		for (unsigned long int i = 0; i < N; i++) {
 			randunif = gsl_ran_flat(rng, 0, 1);
 			if (randunif < (nu * dt)) {
-				v[i].x = gsl_ran_gaussian(rng, sigma);
-				v[i].y = gsl_ran_gaussian(rng, sigma);
-				v[i].z = gsl_ran_gaussian(rng, sigma);
+				p[i].v.x = gsl_ran_gaussian(rng, sigma);
+				p[i].v.y = gsl_ran_gaussian(rng, sigma);
+				p[i].v.z = gsl_ran_gaussian(rng, sigma);
 			}
 		}
 
@@ -215,9 +210,7 @@ int main(int argc, char *argv[]) {
 	double rc = 2.5;               // cutoff radius
 
 	/** Simulation variables */
-	struct cartesian r[N]; // particle positions
-	struct cartesian v[N]; // particle velocities
-	struct cartesian f[N]; // forces on particles
+	struct particle p[N];  // particles
 	double pe;             // potential energy
 	double ke;             // potential energy
 	double etot;           // total energy
@@ -261,15 +254,15 @@ int main(int argc, char *argv[]) {
 	/** Initialization calls */
 	box_volume = ((double)N) / rho;
 	box_length = pow(box_volume, 1.0 / 3);
-	init(N, rng, T, box_length, r, v);
-	forces(N, box_length, r, rc, f, &pe, &virial);
+	init(N, rng, T, box_length, p);
+	forces(N, box_length, p, rc, &pe, &virial);
 
 	/** MD loop */
 	printf("# step\ttemp\ttemp drift\tpressure\n");
 	do {
-		integrate(1, rng, N, T, nu, dt, r, v, f, &pe, &ke, &etot, &inst_temp);
-		forces(N, box_length, r, rc, f, &pe, &virial);
-		integrate(2, rng, N, T, nu, dt, r, v, f, &pe, &ke, &etot, &inst_temp);
+		integrate(1, rng, N, T, nu, dt, p, &pe, &ke, &etot, &inst_temp);
+		forces(N, box_length, p, rc, &pe, &virial);
+		integrate(2, rng, N, T, nu, dt, p, &pe, &ke, &etot, &inst_temp);
 
 		if (step_count == 0)
 			temp0 = inst_temp;
@@ -286,7 +279,7 @@ int main(int argc, char *argv[]) {
 		if(!(step_count % sample_frequency)) {
 			sprintf(filename, "snapshot_%lu.dat", step_count);
 			out = fopen(filename, "w");
-			snapshot(out, N, r, v);
+			snapshot(out, N, p);
 			fclose(out);
 		}
 	} while (step_count <= n_steps);
