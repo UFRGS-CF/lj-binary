@@ -81,19 +81,26 @@ void init(unsigned long int N, const gsl_rng *rng, double temp, double box,
 		p[i].v.y = (p[i].v.y - vcm.y) * fs;
 		p[i].v.z = (p[i].v.z - vcm.z) * fs;
 	}
+
+	// let's supose half the particles are type 0 and other half type 1
+	for (unsigned long int i = 0; i < N; i++) {
+		if(gsl_ran_flat(rng, 0, 1) < 0.5)
+			p[i].type = 0;
+		else
+			p[i].type = 1;
+	}
 }
 
 void forces(unsigned long int N, double box, struct particle p[N], double rcut,
-		double *pe, double *virial) {
+		double *pe, double *virial, struct interaction inter[2][2]) {
 
+	double eps, sig;
 	double r2, r2i, r6i, rcut2, ecut, ff;
 	struct cartesian s;
 
 	*pe = 0;
 	*virial = 0;
-
 	rcut2 = rcut * rcut;
-	ecut = 4 * (1 / pow(rcut, 12) - 1 / pow(rcut, 6));
 
 	for (unsigned long int i = 0; i < N; i++)
 		p[i].f.x = p[i].f.y = p[i].f.z = 0;
@@ -114,10 +121,12 @@ void forces(unsigned long int N, double box, struct particle p[N], double rcut,
 			r2 = pow(s.x, 2) + pow(s.y, 2) + pow(s.z, 2);
 
 			if (r2 <= rcut2) {
-				// calculate forces
-				r2i = 1 / r2;
+				eps = inter[(int) p[i].type][(int) p[j].type].epsilon;
+				sig = inter[(int) p[i].type][(int) p[j].type].sigma;
+
+				r2i = 1.0 / r2;
 				r6i = pow(r2i, 3);
-				ff = 48 * r2i * r6i * (r6i - 0.5);
+				ff = 48 * eps * r2i * r6i * (pow(sig, 12) * r6i - pow(sig, 6) * 0.5);
 
 				p[i].f.x += ff * s.x;
 				p[j].f.x -= ff * s.x;
@@ -128,7 +137,8 @@ void forces(unsigned long int N, double box, struct particle p[N], double rcut,
 				p[i].f.z += ff * s.z;
 				p[j].f.z -= ff * s.z;
 
-				*pe += 4 * r6i * (r6i - 1) - ecut;
+				ecut = 4 * eps * (pow(sig/rcut, 12) - pow(sig/rcut, 6));
+				*pe += 4 * eps * r6i * (pow(sig, 12) * r6i - pow(sig, 6)) - ecut;
 				*virial += ff;
 			}
 		}
@@ -192,6 +202,12 @@ void help() {
 	printf("\t -dt \tTime step\n");
 	printf("\t -rc \tCutoff radius\n");
 	printf("\t -fs \tSnapshot sample frequency\n");
+	printf("\t -epsilon \tEpsilon for type A particle\n");
+	printf("\t -sigma \tSigma for type A particle\n");
+	printf("\t -alpha \tepsilon AB / epsilon AA\n");
+	printf("\t -beta \tepsilon BB / epsilon AA\n");
+	printf("\t -delta \tsigma BB / sigma AA\n");
+	printf("\t -gama \tsigma AB / sigma AA\n");
 	printf("\t -h  \tPrint this message\n");
 }
 
@@ -223,6 +239,10 @@ int main(int argc, char *argv[]) {
 	FILE *out;
 	char filename[50];
 
+	// for now let's consider two particle types, this can be changed later
+	double epsilon = 1, sigma = 1, alpha = 1, beta = 1, delta = 1, gama = 1;
+	struct interaction inter[2][2];
+
 	/* Parse command line arguments */
 	// Start at 1 because 0 is program name
 	for (int i = 1; i < argc; i++) {
@@ -242,6 +262,14 @@ int main(int argc, char *argv[]) {
 			rc = atof(argv[++i]);
 		else if (!strcmp(argv[i], "-sf"))
 			sample_frequency = atoi(argv[++i]);
+		else if (!strcmp(argv[i], "-alpha"))
+			alpha = atof(argv[++i]);
+		else if (!strcmp(argv[i], "-beta"))
+			beta = atof(argv[++i]);
+		else if (!strcmp(argv[i], "-delta"))
+			delta = atof(argv[++i]);
+		else if (!strcmp(argv[i], "-gama"))
+			gama = atof(argv[++i]);
 		else if (!strcmp(argv[i], "-h")) {
 			help();
 			exit(0);
@@ -251,17 +279,28 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+	/* Set parameters */
+	inter[0][0].sigma = sigma;
+	inter[0][0].epsilon = epsilon;
+
+	// Symmetric matrix
+	inter[0][1].sigma = inter[1][0].sigma = gama * sigma;
+	inter[0][1].epsilon = inter[1][0].epsilon = alpha * epsilon;
+
+	inter[1][1].sigma = beta * sigma;
+	inter[1][1].epsilon = delta * epsilon;
+
 	/** Initialization calls */
 	box_volume = ((double)N) / rho;
 	box_length = pow(box_volume, 1.0 / 3);
 	init(N, rng, T, box_length, p);
-	forces(N, box_length, p, rc, &pe, &virial);
+	forces(N, box_length, p, rc, &pe, &virial, inter);
 
 	/** MD loop */
 	printf("# step\ttemp\ttemp drift\tpressure\n");
 	do {
 		integrate(1, rng, N, T, nu, dt, p, &pe, &ke, &etot, &inst_temp);
-		forces(N, box_length, p, rc, &pe, &virial);
+		forces(N, box_length, p, rc, &pe, &virial, inter);
 		integrate(2, rng, N, T, nu, dt, p, &pe, &ke, &etot, &inst_temp);
 
 		if (step_count == 0)
