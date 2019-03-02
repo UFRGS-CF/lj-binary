@@ -1,3 +1,10 @@
+/*
+ * md.h
+ *
+ * Functions and structures useful to simulations and data post-processing
+ *
+ */
+
 struct cartesian {
 	double x, y, z;
 };
@@ -13,3 +20,5 @@ struct interaction {
 	double epsilon;
 	double sigma;
 };
+
+struct cartesian dist(struct particle i, struct particle j, double box);

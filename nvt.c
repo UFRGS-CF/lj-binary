@@ -108,16 +108,7 @@ void forces(unsigned long int N, double box, struct particle p[N], double rcut,
 	for (unsigned long int i = 0; i < (N - 1); i++) {
 		for (unsigned long int j = i + 1; j < N; j++) {
 
-			// distance between i and j
-			s.x = p[i].r.x - p[j].r.x;
-			s.y = p[i].r.y - p[j].r.y;
-			s.z = p[i].r.z - p[j].r.z;
-
-			// periodic boundary condition
-			s.x = s.x - box * round(s.x / box);
-			s.y = s.y - box * round(s.y / box);
-			s.z = s.z - box * round(s.z / box);
-
+			s = dist(p[i], p[j], box);
 			r2 = pow(s.x, 2) + pow(s.y, 2) + pow(s.z, 2);
 
 			if (r2 <= rcut2) {

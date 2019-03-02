@@ -37,16 +37,7 @@ void update_histogram(const unsigned long int N, const double box_lenght,
 	for (unsigned long int i = 0; i < (N - 1); i++) {
 		for (unsigned long int j = i + 1; j < N; j++) {
 
-			// distance between i and j
-			s.x = p[i].r.x - p[j].r.x;
-			s.y = p[i].r.y - p[j].r.y;
-			s.z = p[i].r.z - p[j].r.z;
-
-			// periodic boundary condition
-			s.x = s.x - box_lenght * round(s.x / box_lenght);
-			s.y = s.y - box_lenght * round(s.y / box_lenght);
-			s.z = s.z - box_lenght * round(s.z / box_lenght);
-
+			s = dist(p[i], p[j], box_lenght);
 			r2 = pow(s.x, 2) + pow(s.y, 2) + pow(s.z, 2);
 
 			if (r2 <= rcut2) {
