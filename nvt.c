@@ -185,21 +185,21 @@ void integrate(int key, const gsl_rng *rng, unsigned long int N, double temp,
 void help() {
 	printf("NVT Lennard Jones simulation software.\n");
 	printf("Configuration options:\n");
-	printf("\t -N \tNumber of particles\n");
-	printf("\t -T \tSystem temperature\n");
-	printf("\t -nu \tHeath bath collision frequency\n");
-	printf("\t -rho \tDensity\n");
-	printf("\t -ns \tNumber of integration steps\n");
-	printf("\t -dt \tTime step\n");
-	printf("\t -rc \tCutoff radius\n");
-	printf("\t -fs \tSnapshot sample frequency\n");
+	printf("\t -N \t\tNumber of particles\n");
+	printf("\t -T \t\tSystem temperature\n");
+	printf("\t -nu \t\tHeath bath collision frequency\n");
+	printf("\t -rho \t\tDensity\n");
+	printf("\t -ns \t\tNumber of integration steps\n");
+	printf("\t -dt \t\tTime step\n");
+	printf("\t -rc \t\tCutoff radius\n");
+	printf("\t -fs \t\tSnapshot sample frequency\n");
 	printf("\t -epsilon \tEpsilon for type A particle\n");
 	printf("\t -sigma \tSigma for type A particle\n");
 	printf("\t -alpha \tepsilon AB / epsilon AA\n");
-	printf("\t -beta \tepsilon BB / epsilon AA\n");
+	printf("\t -beta \t\tepsilon BB / epsilon AA\n");
 	printf("\t -delta \tsigma BB / sigma AA\n");
-	printf("\t -gama \tsigma AB / sigma AA\n");
-	printf("\t -h  \tPrint this message\n");
+	printf("\t -gama \t\tsigma AB / sigma AA\n");
+	printf("\t -h  \t\tPrint this message\n");
 }
 
 int main(int argc, char *argv[]) {
