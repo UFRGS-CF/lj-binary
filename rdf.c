@@ -37,13 +37,17 @@ void update_histogram(const unsigned long int N, const double box_lenght,
 	for (unsigned long int i = 0; i < (N - 1); i++) {
 		for (unsigned long int j = i + 1; j < N; j++) {
 
-			s = dist(p[i], p[j], box_lenght);
-			r2 = pow(s.x, 2) + pow(s.y, 2) + pow(s.z, 2);
+			if(p[i].type == 0 && p[j].type == 1) {
 
-			if (r2 <= rcut2) {
-				histogram_index = (int)(sqrt(r2) / bin_size);
-				H[histogram_index] += 2;
+				s = dist(p[i], p[j], box_lenght);
+				r2 = pow(s.x, 2) + pow(s.y, 2) + pow(s.z, 2);
+
+				if (r2 <= rcut2) {
+					histogram_index = (int)(sqrt(r2) / bin_size);
+					H[histogram_index] += 2;
+				}
 			}
+
 		}
 	}
 }
@@ -154,9 +158,10 @@ int main(int argc, char *argv[]) {
 		// volume between bins i+1 and i
 		bin_volume = (pow(i + 1, 3) - pow(i, 3)) * pow(bin_size, 3.0);
 		// number of ideal gas particles in bin_volume
-		N_ideal_gas = (4.0 / 3) * M_PI * bin_volume * rho;
+		// 0.5 because concentration is 1/2
+		N_ideal_gas = (4.0 / 3) * M_PI * bin_volume * (rho / 2);
 		// normalize
-		g[i] = ((double)H[i]) / (N_ideal_gas * N * rdf_sample);
+		g[i] = ((double)H[i]) / (N_ideal_gas * (N/2) * rdf_sample);
 
 		fprintf(stdout, "%.4lf\t%.8lf\n", dist, g[i]);
 	}
