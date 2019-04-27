@@ -24,23 +24,20 @@ void snapshot(FILE *fp, unsigned long int N, struct particle p[N]) {
 	}
 }
 
-void init(unsigned long int N, const gsl_rng *rng, double temp, double box,
-		struct particle p[N], double ca) {
-
-	struct cartesian sumv, vcm;
-	double sumv2 = 0;
-	double mv2, fs;
-	int a, max;
-	unsigned long int n = 0;
-
-	sumv.x = sumv.y = sumv.z = 0;
-
-	a = pow(N, 1.0 / 3);
-
-	if (pow(a, 3) != N)
-		max = a + 1;
+/*
+ * Returns smallest integer a such that a^3 > N
+ */
+int cubic(unsigned long int N) {
+	int a = pow(N, 1.0/3);
+	if (a*a*a == N)
+		return a;
 	else
-		max = a;
+		return a+1;
+}
+
+void lattice(unsigned long int N, double box, struct particle p[N]) {
+	int max = cubic(N); // maximum box side index
+	unsigned long int n = 0; // how many particles were placed in lattice
 
 	for (int i = 0; i < max; i++) {
 		for (int j = 0; j < max; j++) {
@@ -54,6 +51,20 @@ void init(unsigned long int N, const gsl_rng *rng, double temp, double box,
 			}
 		}
 	}
+
+}
+
+void init(unsigned long int N, const gsl_rng *rng, double temp, double box,
+		struct particle p[N], double ca) {
+
+	struct cartesian sumv, vcm;
+	double sumv2 = 0;
+	double mv2, fs;
+
+	sumv.x = sumv.y = sumv.z = 0;
+
+	// setup particles in cubic lattice
+	lattice(N, box, p);
 
 	// generate random velocities in range [-1, 1]
 	for (unsigned long int i = 0; i < N; i++) {
