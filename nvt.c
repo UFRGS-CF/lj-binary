@@ -197,7 +197,7 @@ void help() {
 	printf("\t -alpha \tepsilon AB / epsilon AA\n");
 	printf("\t -beta \t\tepsilon BB / epsilon AA\n");
 	printf("\t -delta \tsigma BB / sigma AA\n");
-	printf("\t -gama \t\tsigma AB / sigma AA\n");
+	printf("\t -gamma \t\tsigma AB / sigma AA\n");
 	printf("\t -ca \tParticle A concentration\n");
 	printf("\t -h  \t\tPrint this message\n");
 }
@@ -208,21 +208,27 @@ int main(int argc, char *argv[]) {
 
 	/** Values that can be defined in command line arguments **/
 	unsigned long int sample_frequency = 100; // snapshot writing frequency
-	unsigned long int N = 1000;    // max number of particles
-	unsigned long int n_steps = 1; // integration steps
-	double T = 1;                  // system temperature
-	double nu = 2;                 // heat bath coupling frequency
-	double rho = 0.85;             // density
-	double dt = 1E-3;              // time step
-	double rc = 2.5;               // cutoff radius
-	double ca = 0.5;
+	unsigned long int N = 2000;               // max number of particles
+	unsigned long int n_steps = 1;            // integration steps
+	double T = 1;                             // system temperature
+	double nu = 2;                            // heat bath coupling frequency
+	double rho = 0.85;                        // density
+	double dt = 1E-3;                         // time step
+	double rc = 2.5;                          // cutoff radius
+	double ca = 0.5;                          // species A concentration
+	double epsilon = 1;                       // epsilon AA
+	double sigma = 1;                         // sigma AA
+	double alpha = 1;                         // epsilon AB / epsilon AA
+	double beta = 1;                          // sigma BB / sigma AA
+	double delta = 1;                         // sigma BB / sigma AA
+	double gamma = 1;                         // sigma AB / sigma AA
 
 	/** Simulation variables */
-	struct particle p[N];  // particles
-	double pe;             // potential energy
-	double ke;             // potential energy
-	double etot;           // total energy
-	double inst_temp;      // instantaneous system temperature
+	struct particle p[N]; // particles
+	double pe;            // potential energy
+	double ke;            // potential energy
+	double etot;          // total energy
+	double inst_temp;     // instantaneous system temperature
 	double temp0, drift = 0;
 	double virial, pressure;
 	double box_volume, box_length;
@@ -233,7 +239,6 @@ int main(int argc, char *argv[]) {
 	char filename[50];
 
 	// for now let's consider two particle species
-	double epsilon = 1, sigma = 1, alpha = 1, beta = 1, delta = 1, gama = 1;
 	struct interaction inter[2][2];
 
 	/* Parse command line arguments */
@@ -261,8 +266,8 @@ int main(int argc, char *argv[]) {
 			beta = atof(argv[++i]);
 		else if (!strcmp(argv[i], "-delta"))
 			delta = atof(argv[++i]);
-		else if (!strcmp(argv[i], "-gama"))
-			gama = atof(argv[++i]);
+		else if (!strcmp(argv[i], "-gamma"))
+			gamma = atof(argv[++i]);
 		else if (!strcmp(argv[i], "-ca"))
 			ca = atof(argv[++i]);
 		else if (!strcmp(argv[i], "-h")) {
@@ -274,14 +279,14 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	cb = 1 - ca;
+	cb = 1 - ca; // B species concentration
 
 	/* Set parameters */
 	inter[0][0].sigma = sigma;
 	inter[0][0].epsilon = epsilon;
 
 	// Symmetric matrix
-	inter[0][1].sigma = inter[1][0].sigma = gama * sigma;
+	inter[0][1].sigma = inter[1][0].sigma = gamma * sigma;
 	inter[0][1].epsilon = inter[1][0].epsilon = alpha * epsilon;
 
 	inter[1][1].sigma = beta * sigma;
