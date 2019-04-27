@@ -70,6 +70,7 @@ int main(int argc, char *argv[]) {
 	double rho = 0.85;
 	double rcut = 2.5;
 	double bin_size = 0.02;
+	double ca = 0.5; // particle species A concentration
 
 	/* Sampling variables */
 	struct particle *p; //particles
@@ -82,6 +83,7 @@ int main(int argc, char *argv[]) {
 	char filename[100];            // store snapshot file name
 	double box_volume, box_lenght; // simulation box properties
 	double bin_volume, N_ideal_gas, dist;
+	double cb = 1 - ca;
 
 	/* Parse command line arguments */
 	// Start at 1 because 0 is program name
@@ -98,6 +100,8 @@ int main(int argc, char *argv[]) {
 			bin_size = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "-rc"))
 			rcut = atoi(argv[++i]);
+		else if (!strcmp(argv[i], "-ca "))
+			ca = atof(argv[++i]);
 		else if (!strcmp(argv[i], "-h")) {
 			help();
 			exit(0);
@@ -159,9 +163,9 @@ int main(int argc, char *argv[]) {
 		bin_volume = (pow(i + 1, 3) - pow(i, 3)) * pow(bin_size, 3.0);
 		// number of ideal gas particles in bin_volume
 		// 0.5 because concentration is 1/2
-		N_ideal_gas = (4.0 / 3) * M_PI * bin_volume * (rho / 2);
+		N_ideal_gas = (4.0 / 3) * M_PI * bin_volume * (rho * cb);
 		// normalize
-		g[i] = ((double)H[i]) / (N_ideal_gas * (N/2) * rdf_sample);
+		g[i] = ((double)H[i]) / (N_ideal_gas * (N * ca) * rdf_sample);
 
 		fprintf(stdout, "%.4lf\t%.8lf\n", dist, g[i]);
 	}

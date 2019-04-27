@@ -25,7 +25,7 @@ void snapshot(FILE *fp, unsigned long int N, struct particle p[N]) {
 }
 
 void init(unsigned long int N, const gsl_rng *rng, double temp, double box,
-		struct particle p[N]) {
+		struct particle p[N], double ca) {
 
 	struct cartesian sumv, vcm;
 	double sumv2 = 0;
@@ -82,9 +82,8 @@ void init(unsigned long int N, const gsl_rng *rng, double temp, double box,
 		p[i].v.z = (p[i].v.z - vcm.z) * fs;
 	}
 
-	// let's supose half the particles are type 0 and other half type 1
 	for (unsigned long int i = 0; i < N; i++) {
-		if(gsl_ran_flat(rng, 0, 1) < 0.5)
+		if(gsl_ran_flat(rng, 0, 1) < ca)
 			p[i].type = 0;
 		else
 			p[i].type = 1;
@@ -199,6 +198,7 @@ void help() {
 	printf("\t -beta \t\tepsilon BB / epsilon AA\n");
 	printf("\t -delta \tsigma BB / sigma AA\n");
 	printf("\t -gama \t\tsigma AB / sigma AA\n");
+	printf("\t -ca \tParticle A concentration\n");
 	printf("\t -h  \t\tPrint this message\n");
 }
 
@@ -215,6 +215,7 @@ int main(int argc, char *argv[]) {
 	double rho = 0.85;             // density
 	double dt = 1E-3;              // time step
 	double rc = 2.5;               // cutoff radius
+	double ca = 0.5;
 
 	/** Simulation variables */
 	struct particle p[N];  // particles
@@ -225,12 +226,13 @@ int main(int argc, char *argv[]) {
 	double temp0, drift = 0;
 	double virial, pressure;
 	double box_volume, box_length;
+	double cb; // particle species B concentration
 
 	unsigned long int step_count = 0;
 	FILE *out;
 	char filename[50];
 
-	// for now let's consider two particle types, this can be changed later
+	// for now let's consider two particle species
 	double epsilon = 1, sigma = 1, alpha = 1, beta = 1, delta = 1, gama = 1;
 	struct interaction inter[2][2];
 
@@ -261,6 +263,8 @@ int main(int argc, char *argv[]) {
 			delta = atof(argv[++i]);
 		else if (!strcmp(argv[i], "-gama"))
 			gama = atof(argv[++i]);
+		else if (!strcmp(argv[i], "-ca"))
+			ca = atof(argv[++i]);
 		else if (!strcmp(argv[i], "-h")) {
 			help();
 			exit(0);
@@ -269,6 +273,8 @@ int main(int argc, char *argv[]) {
 			exit(1);
 		}
 	}
+
+	cb = 1 - ca;
 
 	/* Set parameters */
 	inter[0][0].sigma = sigma;
@@ -284,7 +290,7 @@ int main(int argc, char *argv[]) {
 	/** Initialization calls */
 	box_volume = ((double)N) / rho;
 	box_length = pow(box_volume, 1.0 / 3);
-	init(N, rng, T, box_length, p);
+	init(N, rng, T, box_length, p, ca);
 	forces(N, box_length, p, rc, &pe, &virial, inter);
 
 	/** MD loop */
