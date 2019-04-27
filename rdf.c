@@ -93,13 +93,13 @@ int main(int argc, char *argv[]) {
 		else if (!strcmp(argv[i], "-stop"))
 			stop = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "-step"))
-			step = atof(argv[++i]);
+			step = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "-rho"))
 			rho = atof(argv[++i]);
 		else if (!strcmp(argv[i], "-dr"))
-			bin_size = atoi(argv[++i]);
+			bin_size = atof(argv[++i]);
 		else if (!strcmp(argv[i], "-rc"))
-			rcut = atoi(argv[++i]);
+			rcut = atof(argv[++i]);
 		else if (!strcmp(argv[i], "-ca "))
 			ca = atof(argv[++i]);
 		else if (!strcmp(argv[i], "-h")) {
