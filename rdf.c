@@ -19,7 +19,7 @@ void snapshot_in(FILE *snapshot, unsigned long int N, struct particle p[N]) {
 	for (unsigned long int i = 0; i < N; i++) {
 		fscanf(snapshot, "%lu\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf",
 				&(p[i].type),
-				&(p[i].r.x), &(p[i].r.y), &(p[i].r.z),
+				&(p[i].r[0][0]), &(p[i].r[1][0]), &(p[i].r[2][0]),
 				&vx, &vy, &vz);
 	}
 }
@@ -28,7 +28,7 @@ void update_histogram(const unsigned long int N, const double box_lenght,
 		struct particle p[N], unsigned long int *H, const double rcut,
 		const double bin_size) {
 
-	struct cartesian s;
+	double s[3];
 	double r2;
 
 	int histogram_index;
@@ -39,8 +39,8 @@ void update_histogram(const unsigned long int N, const double box_lenght,
 
 			if(p[i].type == 0 && p[j].type == 1) {
 
-				s = dist(p[i], p[j], box_lenght);
-				r2 = pow(s.x, 2) + pow(s.y, 2) + pow(s.z, 2);
+				dist(p[i], p[j], box_lenght, s);
+				r2 = s[0] * s[0] + s[1] * s[1] + s[2] * s[2];
 
 				if (r2 <= rcut2) {
 					histogram_index = (int)(sqrt(r2) / bin_size);

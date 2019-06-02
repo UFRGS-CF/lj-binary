@@ -4,19 +4,12 @@
 /*
  * Returns distance between particles i and j in each component
  */
-struct cartesian dist(struct particle i, struct particle j, double box){
+void dist(struct particle i, struct particle j, double box, double s[3]) {
+	for (int q = 0; q < 3; q++) {
+		// distance between i and j
+		s[q] = i.r[q][0] - j.r[q][0];
 
-	struct cartesian s;
-
-	// distance between i and j
-	s.x = i.r.x - j.r.x;
-	s.y = i.r.y - j.r.y;
-	s.z = i.r.z - j.r.z;
-
-	// apply periodic boundary condition
-	s.x = s.x - box * round(s.x / box);
-	s.y = s.y - box * round(s.y / box);
-	s.z = s.z - box * round(s.z / box);
-
-	return s;
+		// apply periodic boundary condition
+		s[q] = s[q] - box * round(s[q] / box);
+	}
 }

@@ -5,14 +5,10 @@
  *
  */
 
-struct cartesian {
-	double x, y, z;
-};
-
 struct particle {
-	struct cartesian r;
-	struct cartesian v;
-	struct cartesian f;
+	// i: 0, 1, 2 (spatial coordinates)
+	// j: 0 (position), 1 (velocity), 2 (acceleration)
+	double r[3][3];
 	unsigned long int type;
 };
 
@@ -21,4 +17,4 @@ struct interaction {
 	double sigma;
 };
 
-struct cartesian dist(struct particle i, struct particle j, double box);
+void dist(struct particle i, struct particle j, double box, double s[3]);
