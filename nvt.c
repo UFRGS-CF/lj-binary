@@ -169,7 +169,7 @@ void integrate(int key, const gsl_rng *rng, unsigned long int N, double temp,
 			randunif = gsl_ran_flat(rng, 0, 1);
 			if (randunif < (nu * dt)) {
 				for (int q = 0; q < 3; q++) {
-					p[i].r[1][1] = gsl_ran_gaussian(rng, sigma);
+					p[i].r[q][1] = gsl_ran_gaussian(rng, sigma);
 				}
 			}
 		}
