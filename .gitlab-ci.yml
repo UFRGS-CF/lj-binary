@@ -5,7 +5,7 @@ build:
   before_script:
     - apt update && apt -y install make libgsl-dev
   script:
-    - make nvt rdf
+    - make all
   artifacts:
     paths:
       - md.out

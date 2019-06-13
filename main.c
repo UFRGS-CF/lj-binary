@@ -1,28 +1,14 @@
 /**
- * NVT molecular dynamics with Andersen thermostat and vel. verlet integrator
+ * Molecular Dynamics in canonical (NVT) ensemble with Andersen thermostat and
+ * Velocity Verlet integrator
  */
 
 #include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 #include "md.h"
-
-/*
- * Write simultion coordinates and velocities to output stream fp
- */
-void snapshot(FILE *fp, unsigned long int N, struct particle p[N]) {
-
-	fprintf(fp, "rx\try\trz\tvx\tvy\tvz\n");
-	for (unsigned long int i = 0; i < N; ++i) {
-		fprintf(fp, "%lu\t%.8lf\t%.8lf\t%.8lf\t%.8lf\t%.8lf\t%.8lf\n",
-				p[i].type,
-				p[i].r[0][0], p[i].r[1][0], p[i].r[2][0],
-				p[i].r[0][1], p[i].r[1][1], p[i].r[2][1]);
-	}
-}
+#include "integrate.h"
+#include "io.h"
 
 /*
  * Returns smallest integer a such that a^3 > N
@@ -137,69 +123,6 @@ void forces(unsigned long int N, double box, struct particle p[N], double rcut,
 	}
 }
 
-void integrate(int key, const gsl_rng *rng, unsigned long int N, double temp,
-		double nu, double dt, struct particle p[N], double *pe, double
-		*ke, double *etot, double *inst_temp) {
-
-	double sumv2;
-	double m = 1; // particles mass, change this later
-	double sigma = sqrt(temp);
-	double randunif;
-
-	if (key == 1) {
-		for (unsigned long int i = 0; i < N; i++) {
-			for (int q = 0; q < 3; q++) {
-				p[i].r[q][0] = p[i].r[q][0] + dt * p[i].r[q][1] + dt * dt * p[i].r[q][2] / 2;
-				p[i].r[q][1] = p[i].r[q][1] + dt * p[i].r[q][2] / 2;
-			}
-		}
-	} else if (key == 2) {
-		sumv2 = 0;
-		for (unsigned long int i = 0; i < N; i++) {
-			for (int q = 0; q < 3; q++) {
-				p[i].r[q][1] = p[i].r[q][1] + dt * p[i].r[q][2] / 2;
-
-				sumv2 += p[i].r[q][1] * p[i].r[q][1];
-			}
-		}
-
-		*inst_temp = m * sumv2 / (3 * N);
-
-		for (unsigned long int i = 0; i < N; i++) {
-			randunif = gsl_ran_flat(rng, 0, 1);
-			if (randunif < (nu * dt)) {
-				for (int q = 0; q < 3; q++) {
-					p[i].r[q][1] = gsl_ran_gaussian(rng, sigma);
-				}
-			}
-		}
-
-		*ke = 0.5 * sumv2;
-		*etot = *pe + *ke;
-	}
-}
-
-void help() {
-	printf("NVT Lennard Jones simulation software.\n");
-	printf("Configuration options:\n");
-	printf("\t -N \t\tNumber of particles\n");
-	printf("\t -T \t\tSystem temperature\n");
-	printf("\t -nu \t\tHeath bath collision frequency\n");
-	printf("\t -rho \t\tDensity\n");
-	printf("\t -ns \t\tNumber of integration steps\n");
-	printf("\t -dt \t\tTime step\n");
-	printf("\t -rc \t\tCutoff radius\n");
-	printf("\t -fs \t\tSnapshot sample frequency\n");
-	printf("\t -epsilon \tEpsilon for type A particle\n");
-	printf("\t -sigma \tSigma for type A particle\n");
-	printf("\t -alpha \tepsilon AB / epsilon AA\n");
-	printf("\t -beta \t\tepsilon BB / epsilon AA\n");
-	printf("\t -delta \tsigma BB / sigma AA\n");
-	printf("\t -gamma \t\tsigma AB / sigma AA\n");
-	printf("\t -ca \tParticle A concentration\n");
-	printf("\t -h  \t\tPrint this message\n");
-}
-
 int main(int argc, char *argv[]) {
 
 	const gsl_rng *rng = gsl_rng_alloc(gsl_rng_mt19937);
@@ -240,42 +163,8 @@ int main(int argc, char *argv[]) {
 	struct interaction inter[2][2];
 
 	/* Parse command line arguments */
-	// Start at 1 because 0 is program name
-	for (int i = 1; i < argc; i++) {
-		if (!strcmp(argv[i], "-N"))
-			N = atoi(argv[++i]);
-		else if (!strcmp(argv[i], "-ns"))
-			n_steps = atoi(argv[++i]);
-		else if (!strcmp(argv[i], "-T"))
-			T = atof(argv[++i]);
-		else if (!strcmp(argv[i], "-nu"))
-			nu = atof(argv[++i]);
-		else if (!strcmp(argv[i], "-rho"))
-			rho = atof(argv[++i]);
-		else if (!strcmp(argv[i], "-dt"))
-			dt = atof(argv[++i]);
-		else if (!strcmp(argv[i], "-rc"))
-			rc = atof(argv[++i]);
-		else if (!strcmp(argv[i], "-sf"))
-			sample_frequency = atoi(argv[++i]);
-		else if (!strcmp(argv[i], "-alpha"))
-			alpha = atof(argv[++i]);
-		else if (!strcmp(argv[i], "-beta"))
-			beta = atof(argv[++i]);
-		else if (!strcmp(argv[i], "-delta"))
-			delta = atof(argv[++i]);
-		else if (!strcmp(argv[i], "-gamma"))
-			gamma = atof(argv[++i]);
-		else if (!strcmp(argv[i], "-ca"))
-			ca = atof(argv[++i]);
-		else if (!strcmp(argv[i], "-h")) {
-			help();
-			exit(0);
-		} else {
-			fprintf(stderr, "Error: '%s' not recognized.\n", argv[i]);
-			exit(1);
-		}
-	}
+	read_flags(argc, argv, &N, &n_steps, &T, &nu, &dt, &rho, &rc,
+			&sample_frequency, &alpha, &beta, &delta, &gamma, &ca);
 
 	cb = 1 - ca; // B species concentration
 
