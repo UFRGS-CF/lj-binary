@@ -22,7 +22,7 @@ void help() {
 	printf("Configuration options:\n");
 	printf("\t -N \t\tNumber of particles\n");
 	printf("\t -T \t\tSystem temperature\n");
-	printf("\t -nu \t\tHeath bath collision frequency\n");
+	printf("\t -nu \t\tHeat bath collision frequency\n");
 	printf("\t -rho \t\tDensity\n");
 	printf("\t -ns \t\tNumber of integration steps\n");
 	printf("\t -dt \t\tTime step\n");
