@@ -4,8 +4,8 @@
 #include "md.h"
 
 void integrate(int key, const gsl_rng *rng, unsigned long int N, double temp,
-		double nu, double dt, struct particle p[N], double *pe, double
-		*ke, double *etot, double *inst_temp) {
+		double nu, double dt, struct particle p[N], double *pe,
+		double *ke, double *etot) {
 
 	double sumv2;
 	double m = 1; // particles mass, change this later
@@ -28,8 +28,6 @@ void integrate(int key, const gsl_rng *rng, unsigned long int N, double temp,
 				sumv2 += p[i].r[q][1] * p[i].r[q][1];
 			}
 		}
-
-		*inst_temp = m * sumv2 / (3 * N);
 
 		for (unsigned long int i = 0; i < N; i++) {
 			randunif = gsl_ran_flat(rng, 0, 1);

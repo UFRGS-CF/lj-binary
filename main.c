@@ -86,7 +86,7 @@ void forces(unsigned long int N, double box, struct particle p[N], double rcut,
 		double *pe, double *virial, struct interaction inter[2][2]) {
 
 	double eps, sig;
-	double r2, r2i, r6i, rcut2, ecut, ff;
+	double r2, r6i, rcut2, ecut, ff;
 	double s[3]; // separation between particles
 
 	*pe = 0;
@@ -106,13 +106,12 @@ void forces(unsigned long int N, double box, struct particle p[N], double rcut,
 				eps = inter[(int) p[i].type][(int) p[j].type].epsilon;
 				sig = inter[(int) p[i].type][(int) p[j].type].sigma;
 
-				r2i = 1.0 / r2;
-				r6i = pow(r2i, 3);
-				ff = 48 * eps * r2i * r6i * (pow(sig, 12) * r6i - pow(sig, 6) * 0.5);
+				r6i = 1.0 / (r2 * r2 * r2);
+				ff = 48 * eps * r6i * (pow(sig, 12) * r6i - pow(sig, 6) * 0.5);
 
 				for (int q = 0; q < 3; q++) {
-					p[i].r[q][2] += ff * s[q];
-					p[j].r[q][2] -= ff * s[q];
+					p[i].r[q][2] += ff * s[q] / r2;
+					p[j].r[q][2] -= ff * s[q] / r2;
 				}
 
 				ecut = 4 * eps * (pow(sig/rcut, 12) - pow(sig/rcut, 6));
@@ -188,18 +187,19 @@ int main(int argc, char *argv[]) {
 	/** MD loop */
 	printf("# step\ttemp\ttemp drift\tpressure\n");
 	do {
-		integrate(1, rng, N, T, nu, dt, p, &pe, &ke, &etot, &inst_temp);
+		integrate(1, rng, N, T, nu, dt, p, &pe, &ke, &etot);
 		forces(N, box_length, p, rc, &pe, &virial, inter);
-		integrate(2, rng, N, T, nu, dt, p, &pe, &ke, &etot, &inst_temp);
+		integrate(2, rng, N, T, nu, dt, p, &pe, &ke, &etot);
+
+		inst_temp = ke * 2.0 / (3 * N);
+		pressure = rho * inst_temp + virial / (3 * box_volume);
 
 		if (step_count == 0)
 			temp0 = inst_temp;
 		else
 			drift = (inst_temp - temp0) / temp0;
 
-		pressure = rho * inst_temp + virial / box_volume;
-		printf("%lu\t%lf\t%E\t%lf\n", step_count, inst_temp, drift,
-				pressure);
+		printf("%lu\t%lf\t%E\t%lf\n", step_count, inst_temp, drift, pressure);
 
 		step_count++;
 
