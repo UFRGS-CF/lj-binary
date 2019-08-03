@@ -139,8 +139,8 @@ int main(int argc, char *argv[]) {
 	double epsilon = 1;                       // epsilon AA
 	double sigma = 1;                         // sigma AA
 	double alpha = 1;                         // epsilon AB / epsilon AA
+	double delta = 1;                         // epsilon BB / sigma AA
 	double beta = 1;                          // sigma BB / sigma AA
-	double delta = 1;                         // sigma BB / sigma AA
 	double gamma = 1;                         // sigma AB / sigma AA
 
 	/** Simulation variables */
