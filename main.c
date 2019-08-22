@@ -163,7 +163,8 @@ int main(int argc, char *argv[]) {
 
 	/* Parse command line arguments */
 	read_flags(argc, argv, &N, &n_steps, &T, &nu, &dt, &rho, &rc,
-			&sample_frequency, &alpha, &beta, &delta, &gamma, &ca);
+			&sample_frequency, &alpha, &beta, &delta, &gamma, &ca,
+			&epsilon, &sigma);
 
 	cb = 1 - ca; // B species concentration
 

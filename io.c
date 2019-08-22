@@ -41,7 +41,8 @@ void help() {
 void read_flags(int argc, char *argv[], unsigned long int *N, unsigned long int
 		*n_steps, double *T, double *nu, double *dt, double *rho,
 		double *rc, unsigned long int *sample_frequency, double *alpha,
-		double *beta, double *delta, double *gamma, double *ca) {
+		double *beta, double *delta, double *gamma, double *ca,
+		double *epsilon, double *sigma) {
 
 	// Start at 1 because 0 is program name
 	for (int i = 1; i < argc; i++) {
@@ -71,6 +72,10 @@ void read_flags(int argc, char *argv[], unsigned long int *N, unsigned long int
 			*gamma = atof(argv[++i]);
 		else if (!strcmp(argv[i], "-ca"))
 			*ca = atof(argv[++i]);
+		else if (!strcmp(argv[i], "-epsilon"))
+			*epsilon= atof(argv[++i]);
+		else if (!strcmp(argv[i], "-sigma"))
+			*sigma= atof(argv[++i]);
 		else if (!strcmp(argv[i], "-h")) {
 			help();
 			exit(0);
