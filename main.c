@@ -206,7 +206,7 @@ int main(int argc, char *argv[]) {
 
 		// Save simulation snapshot every sample_frequency steps
 		if(!(step_count % sample_frequency)) {
-			sprintf(filename, "snapshot_%lu.dat", step_count);
+			sprintf(filename, "snapshot_%lu.xyz", step_count);
 			out = fopen(filename, "w");
 			snapshot(out, N, p);
 			fclose(out);

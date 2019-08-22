@@ -8,6 +8,7 @@
  */
 void snapshot(FILE *fp, unsigned long int N, struct particle p[N]) {
 
+	fprintf(fp, "%lu\n", N);
 	fprintf(fp, "rx\try\trz\tvx\tvy\tvz\n");
 	for (unsigned long int i = 0; i < N; ++i) {
 		fprintf(fp, "%lu\t%.8lf\t%.8lf\t%.8lf\t%.8lf\t%.8lf\t%.8lf\n",
