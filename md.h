@@ -5,6 +5,9 @@
  *
  */
 
+#ifndef MD_H
+#define MD_H
+
 struct particle {
 	// i: 0, 1, 2 (spatial coordinates)
 	// j: 0 (position), 1 (velocity), 2 (acceleration)
@@ -18,3 +21,5 @@ struct interaction {
 };
 
 void dist(struct particle i, struct particle j, double box, double s[3]);
+
+#endif
