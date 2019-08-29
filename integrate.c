@@ -3,9 +3,9 @@
 #include <math.h>
 #include "md.h"
 
-void integrate(int key, const gsl_rng *rng, unsigned long int N, double temp,
-		double nu, double dt, struct particle p[N], double *pe,
-		double *ke, double *etot) {
+void integrate(int key, const gsl_rng *rng, unsigned long int N, double
+		box_length, double temp, double nu, double dt, struct particle
+		p[N], double *pe, double *ke, double *etot) {
 
 	double sumv2;
 	double m = 1; // particles mass, change this later
@@ -17,6 +17,12 @@ void integrate(int key, const gsl_rng *rng, unsigned long int N, double temp,
 			for (int q = 0; q < 3; q++) {
 				p[i].r[q][0] = p[i].r[q][0] + dt * p[i].r[q][1] + dt * dt * p[i].r[q][2] / 2;
 				p[i].r[q][1] = p[i].r[q][1] + dt * p[i].r[q][2] / 2;
+
+				if(p[i].r[q][0] < 0) {
+					p[i].r[q][0] += box_length;
+				} else if(p[i].r[q][0] > box_length) {
+					p[i].r[q][0] -= box_length;
+				}
 			}
 		}
 	} else if (key == 2) {

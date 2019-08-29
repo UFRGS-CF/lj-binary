@@ -188,9 +188,9 @@ int main(int argc, char *argv[]) {
 	/** MD loop */
 	printf("# step\ttemp\ttemp drift\tpressure\n");
 	do {
-		integrate(1, rng, N, T, nu, dt, p, &pe, &ke, &etot);
+		integrate(1, rng, N, box_length, T, nu, dt, p, &pe, &ke, &etot);
 		forces(N, box_length, p, rc, &pe, &virial, inter);
-		integrate(2, rng, N, T, nu, dt, p, &pe, &ke, &etot);
+		integrate(2, rng, N, box_length, T, nu, dt, p, &pe, &ke, &etot);
 
 		inst_temp = ke * 2.0 / (3 * N);
 		pressure = rho * inst_temp + virial / (3 * box_volume);
